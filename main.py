@@ -193,6 +193,7 @@ def main(args, config):
 
     if config.MODEL.PRETRAINED and (not config.MODEL.RESUME):
         load_pretrained(config, model_without_ddp, logger)
+        model_without_ddp.make_tinv()
         acc1, acc5, loss = validate(args, config, data_loader_val, model)
         logger.info(
             f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")

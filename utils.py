@@ -202,9 +202,6 @@ def load_pretrained(config, model, logger):
     msg = model.load_state_dict(state_dict, strict=False)
     logger.warning(msg)
 
-    # run make_tinv
-    model.make_tinv()
-
     del checkpoint
     torch.cuda.empty_cache()
 
