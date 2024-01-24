@@ -202,13 +202,8 @@ def load_pretrained(config, model, logger):
     msg = model.load_state_dict(state_dict, strict=False)
     logger.warning(msg)
 
-    # if type is LRLinear, then run make_tinv
-    for name, m in model.named_modules():
-        if isinstance(m, LRLinear):
-            m.make_tinv()
-            logger.info(f"convert {name} to LRLinearV2")
-
-    logger.info(f"=> loaded successfully '{config.MODEL.PRETRAINED}'")
+    # run make_tinv
+    model.make_tinv()
 
     del checkpoint
     torch.cuda.empty_cache()

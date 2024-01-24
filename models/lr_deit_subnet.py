@@ -323,6 +323,13 @@ class LRVisionTransformerSubnet(nn.Module):
             self.head_dist = nn.Linear(
                 self.embed_dim, self.num_classes) if num_classes > 0 else nn.Identity()
 
+    def make_tinv(self):
+        for block in self.blocks:
+            for layer in block.modules():
+                if isinstance(layer, LRLinear):
+                    layer.make_tinv()
+                    print("make tinv: ", layer)
+
     def forward_features(self, x):
         x = self.patch_embed(x)
         # stole cls_tokens impl from Phil Wang, thanks
