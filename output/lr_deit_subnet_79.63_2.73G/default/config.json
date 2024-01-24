@@ -1,0 +1,184 @@
+AMP_ENABLE: true
+AUG:
+  AUTO_AUGMENT: rand-m9-mstd0.5-inc1
+  COLOR_JITTER: 0.4
+  CUTMIX: 1.0
+  CUTMIX_MINMAX: null
+  MIXUP: 0.8
+  MIXUP_MODE: batch
+  MIXUP_PROB: 1.0
+  MIXUP_SWITCH_PROB: 0.5
+  RECOUNT: 1
+  REMODE: pixel
+  REPROB: 0.25
+BASE:
+- ''
+DATA:
+  BATCH_SIZE: 128
+  DATASET: imagenet
+  DATA_PATH: /dataset/imagenet
+  DEBUG: false
+  FNAME_FORMAT: '{}.jpeg'
+  IMG_SIZE: 224
+  INTERPOLATION: bicubic
+  MEAN_AND_STD_TYPE: default
+  NUM_WORKERS: 8
+  PIN_MEMORY: true
+  TRAIN_PERCENTAGE: 1.0
+  VAL_PERCENTAGE: 1.0
+DISTILL:
+  ENABLED: false
+  LOGITS_TOPK: 100
+  SAVE_TEACHER_LOGITS: false
+  TEACHER_LOGITS_PATH: ''
+EVAL_MODE: false
+FUSED_WINDOW_PROCESS: false
+LOCAL_RANK: 0
+MODEL:
+  CHOICES_BLOCK_CONFIG: []
+  DEIT:
+    DEPTH: 12
+    EMBED_DIM: 384
+    FUSE_LR: false
+    IN_CHANS: 3
+    MLP_RATIO: 4.0
+    NUM_HEADS: 6
+    PATCH_SIZE: 16
+    QKV_BIAS: true
+    SVD_CONFIG:
+    - - 0.16666666666666666
+      - 0.5
+      - 0.3333333333333333
+    - - 0.16666666666666666
+      - 0.5
+      - 0.3333333333333333
+    - - 0.3333333333333333
+      - 0.5
+      - 0.5
+    - - 0.5
+      - 0.5
+      - 0.16666666666666666
+    - - 0.5
+      - 0.5
+      - 0.3333333333333333
+    - - 0.5
+      - 0.3333333333333333
+      - 0.3333333333333333
+    - - 0.3333333333333333
+      - 0.6666666666666666
+      - 0.5
+    - - 0.3333333333333333
+      - 0.8333333333333334
+      - 0.3333333333333333
+    - - 1.0
+      - 0.5
+      - 0.16666666666666666
+    - - 0.3333333333333333
+      - 0.5
+      - 0.16666666666666666
+    - - 0.6666666666666666
+      - 0.5
+      - 0.16666666666666666
+    - - 0.5
+      - 0.16666666666666666
+      - 0.16666666666666666
+  DROP_PATH_RATE: 0.1
+  DROP_RATE: 0.0
+  LABEL_SMOOTHING: 0.1
+  NAME: lr_deit_subnet_79.63_2.73G
+  NUM_CLASSES: 1000
+  PRETRAINED: /home/shadowpa0327/research/FLORA/subnet_weights/lr_deit_subnet_79.63_2.73G.pth
+  RESUME: ''
+  SWIN:
+    APE: false
+    DEPTHS:
+    - 2
+    - 2
+    - 6
+    - 2
+    EMBED_DIM: 96
+    IN_CHANS: 3
+    MLP_RATIO: 4.0
+    NUM_HEADS:
+    - 3
+    - 6
+    - 12
+    - 24
+    PATCH_NORM: true
+    PATCH_SIZE: 4
+    QKV_BIAS: true
+    QK_SCALE: null
+    SVD_CONFIG: []
+    WINDOW_SIZE: 7
+  TINY_VIT:
+    DEPTHS:
+    - 2
+    - 2
+    - 6
+    - 2
+    EMBED_DIMS:
+    - 96
+    - 192
+    - 384
+    - 576
+    IN_CHANS: 3
+    LOCAL_CONV_SIZE: 3
+    MBCONV_EXPAND_RATIO: 4.0
+    MLP_RATIO: 4.0
+    NUM_HEADS:
+    - 3
+    - 6
+    - 12
+    - 18
+    SVD_CONFIG: []
+    WINDOW_SIZES:
+    - 7
+    - 7
+    - 14
+    - 7
+  TYPE: lr_deit_subnet
+NAS:
+  ENABLE: false
+  INIT_CONFIG: null
+  LSSS:
+    BLOCK_ID: 0
+    ENABLE: false
+    SEARCHED_CFG_PATH: null
+  NON_UNIFORM: true
+  NUM_BLOCKS: 12
+  NUM_CHOICES_PER_BLOCKS: 3
+  SEARCH_SPACE: []
+OUTPUT: output/lr_deit_subnet_79.63_2.73G/default
+PRINT_FREQ: 10
+SAVE_FREQ: 1
+SEED: 0
+TAG: default
+TEST:
+  CROP: true
+THROUGHPUT_MODE: true
+TRAIN:
+  ACCUMULATION_STEPS: 1
+  AUTO_RESUME: true
+  BASE_LR: 0.000125
+  CLIP_GRAD: 5.0
+  EPOCHS: 300
+  EVAL_BN_WHEN_TRAINING: false
+  LAYER_LR_DECAY: 1.0
+  LR_SCHEDULER:
+    DECAY_EPOCHS: 30
+    DECAY_RATE: 0.1
+    NAME: cosine
+  MIN_LR: 1.25e-06
+  OPTIMIZER:
+    BETAS:
+    - 0.9
+    - 0.999
+    EPS: 1.0e-08
+    MOMENTUM: 0.9
+    NAME: adamw
+  START_EPOCH: 0
+  USE_CHECKPOINT: false
+  WARMUP_EPOCHS: 20
+  WARMUP_LR: 1.25e-07
+  WEIGHT_DECAY: 0.05
+WANDB: false

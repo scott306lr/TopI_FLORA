@@ -26,9 +26,9 @@ from data import build_loader
 from lr_scheduler import build_scheduler
 from optimizer import build_optimizer
 from logger import create_logger
-from utils import load_checkpoint, load_pretrained, save_checkpoint,\
-    NativeScalerWithGradNormCount,\
-    auto_resume_helper, is_main_process,\
+from utils import load_checkpoint, load_pretrained, save_checkpoint, \
+    NativeScalerWithGradNormCount, \
+    auto_resume_helper, is_main_process, \
     get_git_info, run_cmd
 
 
@@ -82,15 +82,17 @@ def parse_option():
     parser.add_argument("--local_rank", type=int,
                         help='local rank for DistributedDataParallel')
 
-    
     # NAS
-    parser.add_argument("--lsss", action='store_true', help = 'train only the local supernet', default=False)
-    parser.add_argument("--lsss-bid", type = int, help = "block id for the target transformer blocks", default = -1)
+    parser.add_argument("--lsss", action='store_true',
+                        help='train only the local supernet', default=False)
+    parser.add_argument("--lsss-bid", type=int,
+                        help="block id for the target transformer blocks", default=-1)
     args = parser.parse_args()
 
     config = get_config(args)
 
     return args, config
+
 
 def main(args, config):
     dataset_train, dataset_val, data_loader_train, data_loader_val, mixup_fn = build_loader(
@@ -111,33 +113,33 @@ def main(args, config):
     logger.info(str(model))
 
     optimizer = build_optimizer(config, model)
-    
+
     if 'classic' in config.MODEL.TYPE:
         model = torch.nn.parallel.DistributedDataParallel(
-            model, device_ids=[config.LOCAL_RANK], broadcast_buffers=False, find_unused_parameters = True)
+            model, device_ids=[config.LOCAL_RANK], broadcast_buffers=False, find_unused_parameters=True)
     else:
         model = torch.nn.parallel.DistributedDataParallel(
-            model, device_ids=[config.LOCAL_RANK], broadcast_buffers=False, find_unused_parameters = False)
+            model, device_ids=[config.LOCAL_RANK], broadcast_buffers=False, find_unused_parameters=False)
     loss_scaler = NativeScalerWithGradNormCount()
     model_without_ddp = model.module
 
     low_rank_search_space = build_low_rank_search_space(args, config)
-    
+
     if config.NAS.ENABLE:
         if config.NAS.INIT_CONFIG is None:
             cfg = low_rank_search_space.get_smallest_config()
         else:
             cfg = config.NAS.INIT_CONFIG
-            
+
         model_without_ddp.set_sample_config(cfg)
         if config.NAS.LSSS.ENABLE:
-            logger.info(f"=> Now training the local supernet of block-{config.NAS.LSSS.BLOCK_ID}")
+            logger.info(
+                f"=> Now training the local supernet of block-{config.NAS.LSSS.BLOCK_ID}")
         else:
             logger.info(f"=> Srarting supernet training !")
         logger.info(f"")
         logger.info(f"=> Set init subnet config to be {cfg}")
         logger.info(str(model))
-
 
     n_parameters = sum(p.numel()
                        for p in model.parameters() if p.requires_grad)
@@ -211,7 +213,7 @@ def main(args, config):
 
         if config.DISTILL.ENABLED:
             train_one_epoch_distill_using_saved_logits(
-                args, config, model, criterion, data_loader_train, optimizer, epoch, mixup_fn, 
+                args, config, model, criterion, data_loader_train, optimizer, epoch, mixup_fn,
                 lr_scheduler, loss_scaler, low_rank_search_space)
         else:
             train_one_epoch(args, config, model, criterion,
@@ -223,7 +225,8 @@ def main(args, config):
 
         if config.NAS.ENABLE:
             if config.NAS.LSSS.ENABLE:
-                test_cfg = low_rank_search_space.get_smallest_config_ith_block(config.NAS.LSSS.BLOCK_ID)
+                test_cfg = low_rank_search_space.get_smallest_config_ith_block(
+                    config.NAS.LSSS.BLOCK_ID)
             else:
                 test_cfg = low_rank_search_space.get_smallest_config()
             model.module.set_sample_config(test_cfg)
@@ -283,14 +286,14 @@ def train_one_epoch(args, config, model, criterion, data_loader, optimizer, epoc
             (idx * NORM_ITER_LEN // num_steps)
 
         samples = samples.cuda(non_blocking=True)
-        targets = targets.cuda(non_blocking=True)   
-        
-        
+        targets = targets.cuda(non_blocking=True)
+
         if config.NAS.LSSS.ENABLE:
-            subnet_cfg = low_rank_search_space.random_ith_block(config.NAS.LSSS.BLOCK_ID)
+            subnet_cfg = low_rank_search_space.random_ith_block(
+                config.NAS.LSSS.BLOCK_ID)
         else:
             subnet_cfg = low_rank_search_space.random()
-            
+
         model.module.set_sample_config(subnet_cfg)
 
         if mixup_fn is not None:
@@ -385,12 +388,12 @@ def train_one_epoch_distill_using_saved_logits(args, config, model, criterion, d
         targets = targets.cuda(non_blocking=True)
 
         if config.NAS.LSSS.ENABLE:
-            subnet_cfg = low_rank_search_space.random_ith_block(config.NAS.LSSS.BLOCK_ID)
+            subnet_cfg = low_rank_search_space.random_ith_block(
+                config.NAS.LSSS.BLOCK_ID)
         else:
             subnet_cfg = low_rank_search_space.random()
 
         model.module.set_sample_config(subnet_cfg)
-
 
         if mixup_fn is not None:
             samples, targets = mixup_fn(samples, targets, seeds)
@@ -503,7 +506,7 @@ def validate(args, config, data_loader, model, num_classes=1000):
         # compute output
         with torch.cuda.amp.autocast(enabled=config.AMP_ENABLE):
             output = model(images)
-            
+
         # measure accuracy and record loss
         loss = criterion(output, target)
         acc1, acc5 = accuracy(output, target, topk=(1, 5))
@@ -545,7 +548,8 @@ def throughput(data_loader, model, logger):
     inputs = torch.randn(batch_size, 3, H, W).cuda(non_blocking=True)
 
     # trace model to avoid python overhead
-    model = torch.jit.trace(model, inputs)
+    # model = torch.jit.trace(model, inputs)
+    model = torch.compile(model)
 
     torch.cuda.empty_cache()
     torch.cuda.synchronize()
@@ -572,7 +576,7 @@ if __name__ == '__main__':
     config.defrost()
     if config.DISTILL.TEACHER_LOGITS_PATH:
         config.DISTILL.ENABLED = True
-    
+
     if args.lsss:
         config.NAS.LSSS.ENABLE = True
         assert args.lsss_bid >= 0, "Please specify the block id for local search space searching"
@@ -627,7 +631,7 @@ if __name__ == '__main__':
         logger.info(f"Full config saved to {path}")
 
         config_dict = dict(config)
-        #config_dict['git'] = get_git_info()
+        # config_dict['git'] = get_git_info()
         if args.use_wandb:
             wandb_output_path = config.OUTPUT
             wandb.init(project="TrimsformerV2", entity="brian1009", config=config_dict,

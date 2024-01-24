@@ -10,9 +10,10 @@ import os
 import torch
 import torch.distributed as dist
 import subprocess
+from models import LRLinear
 
 
-def load_checkpoint(config, model, optimizer, lr_scheduler, loss_scaler, logger, search_space = None):
+def load_checkpoint(config, model, optimizer, lr_scheduler, loss_scaler, logger, search_space=None):
     logger.info(
         f"==============> Resuming form {config.MODEL.RESUME}....................")
     if config.MODEL.RESUME.startswith('https'):
@@ -61,14 +62,14 @@ def load_checkpoint(config, model, optimizer, lr_scheduler, loss_scaler, logger,
                 f"=> loaded successfully '{config.MODEL.RESUME}' (epoch {checkpoint['epoch']})")
             if 'max_accuracy' in checkpoint:
                 max_accuracy = checkpoint['max_accuracy']
-        
+
         if 'search_space' in checkpoint and search_space is not None:
             search_space.load_state_dict(checkpoint['search_space'])
             logger.info(
                 f"=> Found existing search space: {search_space})")
             logger.info(
                 f"=> loaded search space successfully")
-            
+
         if 'epoch' in checkpoint:
             config.defrost()
             config.TRAIN.START_EPOCH = checkpoint['epoch'] + 1
@@ -201,13 +202,19 @@ def load_pretrained(config, model, logger):
     msg = model.load_state_dict(state_dict, strict=False)
     logger.warning(msg)
 
+    # if type is LRLinear, then run make_tinv
+    for name, m in model.named_modules():
+        if isinstance(m, LRLinear):
+            m.make_tinv()
+            logger.info(f"convert {name} to LRLinearV2")
+
     logger.info(f"=> loaded successfully '{config.MODEL.PRETRAINED}'")
 
     del checkpoint
     torch.cuda.empty_cache()
 
 
-def save_checkpoint(config, epoch, model, max_accuracy, optimizer, lr_scheduler, loss_scaler, logger, search_space = None):
+def save_checkpoint(config, epoch, model, max_accuracy, optimizer, lr_scheduler, loss_scaler, logger, search_space=None):
     save_state = {'model': model.state_dict(),
                   'optimizer': optimizer.state_dict(),
                   'lr_scheduler': lr_scheduler.state_dict(),
@@ -223,10 +230,10 @@ def save_checkpoint(config, epoch, model, max_accuracy, optimizer, lr_scheduler,
     logger.info(f"{save_path} saved !!!")
 
 
-
 def save_search_space(config, epoch, logger, search_space):
-    save_state = {'search_space':search_space.state_dict()}
-    save_path = os.path.join(config.OUTPUT, f'ckpt_epoch_{epoch}_search_space.pth')
+    save_state = {'search_space': search_space.state_dict()}
+    save_path = os.path.join(
+        config.OUTPUT, f'ckpt_epoch_{epoch}_search_space.pth')
     logger.info(f"{save_path} saving (search space before resample)......")
     torch.save(save_state, save_path)
     logger.info(f"{save_path} saved (search space before resample) !!!")
@@ -234,11 +241,12 @@ def save_search_space(config, epoch, logger, search_space):
 
 def save_sample_result(config, epoch, logger, flops, acc, rank_cfgs):
     ckpt = {
-        "flops":flops,
-        "acc":acc,
-        "cfgs":rank_cfgs
+        "flops": flops,
+        "acc": acc,
+        "cfgs": rank_cfgs
     }
-    save_path = os.path.join(config.OUTPUT, f'ckpt_epoch_{epoch}_random_sample.pth')
+    save_path = os.path.join(
+        config.OUTPUT, f'ckpt_epoch_{epoch}_random_sample.pth')
     logger.info(f"{save_path} saving (ssearch space before resample)......")
     torch.save(ckpt, save_path)
     logger.info(f"{save_path} saved (search space before resample) !!!")
