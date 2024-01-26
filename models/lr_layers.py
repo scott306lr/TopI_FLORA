@@ -29,7 +29,7 @@ import torch.nn.functional as F
 
 #         return x
 
-# class TopInvLRLinear(nn.Module):
+# class TopILRLinear(nn.Module):
 class LRLinear(nn.Module):
     def __init__(self, ratio, in_channel, out_channel, bias=True):
         super().__init__()
@@ -43,24 +43,28 @@ class LRLinear(nn.Module):
             self.VT = nn.Linear(in_channel, self.num_components, bias=False)
             self.U = nn.Linear(self.num_components, out_channel, bias=bias)
             self.rank = self.num_components
-            # self.make_tinv()
 
         else:
             self.fc = nn.Linear(in_channel, out_channel, bias=bias)
+        self.topI = False
 
-    def make_tinv(self):  # run this function after original model is loaded
-        if self.lr:
+    def make_topI(self):
+        if self.lr and not self.topI:
             T = self.VT.weight[:self.rank, :self.rank]
             self.newVT = torch.nn.Parameter(
-                torch.linalg.solve(T, self.VT.weight.data)[:, self.rank:])
+                torch.linalg.solve(T, self.VT.weight.data[:, self.rank:]))
             self.U.weight.data = self.U.weight.data @ T
 
+            self.topI = True
+
     def forward(self, x, scaling_factor=None):
-        if self.lr:
-            # x = self.VT(x)
+        if self.topI:
             pass_forward = x[:, :, :self.rank]
             remain = x[:, :, self.rank:]
             x = F.linear(remain, self.newVT) + pass_forward
+            x = self.U(x)
+        elif self.lr:
+            x = self.VT(x)
             x = self.U(x)
         else:
             x = self.fc(x)
