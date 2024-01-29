@@ -9,6 +9,7 @@ import torch.nn.functional as F
 #         self.bias = bias
 #         self.lr = (ratio != None) and (ratio != 1.0)
 #         self.sample_ratio = ratio if self.lr else 1.0
+#         self.in_channel = in_channel
 #         self.num_components = int(
 #             round(self.sample_ratio * min(in_channel, out_channel)))
 #         if self.lr:
@@ -18,7 +19,9 @@ import torch.nn.functional as F
 #             self.fc = nn.Linear(in_channel, out_channel, bias=bias)
 
 #     def make_tinv(self):
-#         pass
+#         if self.lr:
+#             self.newVT = torch.nn.Parameter(
+#                 torch.Tensor(self.num_components, self.in_channel-self.num_components))
 
 #     def forward(self, x, scaling_factor=None):
 #         if self.lr:
@@ -51,7 +54,7 @@ class LRLinear(nn.Module):
     def make_topI(self):
         if self.lr and not self.topI:
             T = self.VT.weight[:self.rank, :self.rank]
-            self.newVT = torch.nn.Parameter(
+            self.VT = torch.nn.Parameter(
                 torch.linalg.solve(T, self.VT.weight.data[:, self.rank:]))
             self.U.weight.data = self.U.weight.data @ T
 
@@ -61,7 +64,8 @@ class LRLinear(nn.Module):
         if self.topI:
             pass_forward = x[:, :, :self.rank]
             remain = x[:, :, self.rank:]
-            x = F.linear(remain, self.newVT) + pass_forward
+            x = F.linear(remain, self.VT) + pass_forward
+            # x = topI_linear(x, self.VT, self.rank)
             x = self.U(x)
         elif self.lr:
             x = self.VT(x)
