@@ -62,10 +62,9 @@ class LRLinear(nn.Module):
 
     def forward(self, x, scaling_factor=None):
         if self.topI:
-            pass_forward = x[:, :, :self.rank]
-            remain = x[:, :, self.rank:]
-            x = F.linear(remain, self.VT) + pass_forward
-            # x = topI_linear(x, self.VT, self.rank)
+            input_1 = x[:, :, self.rank:]
+            input_2 = x[:, :, :self.rank]
+            x = F.linear(input_2, self.VT) + input_1
             x = self.U(x)
         elif self.lr:
             x = self.VT(x)
