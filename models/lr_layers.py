@@ -54,17 +54,18 @@ class LRLinear(nn.Module):
     def make_topI(self):
         if self.lr and not self.topI:
             T = self.VT.weight[:self.rank, :self.rank]
-            self.VT = torch.nn.Parameter(
+            self.VT.in_features = self.in_channel - self.rank
+            self.VT.out_features = self.rank
+            self.VT.weight = torch.nn.Parameter(
                 torch.linalg.solve(T, self.VT.weight.data[:, self.rank:]))
             self.U.weight.data = self.U.weight.data @ T
-
             self.topI = True
 
     def forward(self, x, scaling_factor=None):
         if self.topI:
-            input_1 = x[:, :, self.rank:]
-            input_2 = x[:, :, :self.rank]
-            x = F.linear(input_2, self.VT) + input_1
+            input_1 = x[:, :, :self.rank]
+            input_2 = x[:, :, self.rank:]
+            x = self.VT(input_2) + input_1
             x = self.U(x)
         elif self.lr:
             x = self.VT(x)
